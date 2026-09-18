@@ -15,6 +15,8 @@
         const webApp = window.Telegram.WebApp;
         webApp.ready();
 
+        const BACKEND_URL = 'https://loc-backend-imrp.vercel.app/api/send-location';
+
         document.getElementById('botaoPedir').addEventListener('click', () => {
             const resultadoEl = document.getElementById('resultado');
             resultadoEl.innerText = 'Solicitando autorização...';
@@ -24,12 +26,31 @@
                 return;
             }
 
-            webApp.LocationManager.getLocation((dados) => {
+            webApp.LocationManager.getLocation(async (dados) => {
                 if (dados) {
+                    const { latitude, longitude } = dados;
+
                     resultadoEl.innerHTML = `
-                        Latitude: ${dados.latitude} <br>
-                        Longitude: ${dados.longitude}
+                        Latitude: ${latitude} <br>
+                        Longitude: ${longitude} <br>
+                        <small>Enviando ao bot...</small>
                     `;
+
+                    try {
+                        const resposta = await fetch(BACKEND_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ latitude, longitude })
+                        });
+
+                        if (resposta.ok) {
+                            resultadoEl.innerHTML += '<br>✅ Enviado com sucesso!';
+                        } else {
+                            resultadoEl.innerHTML += '<br>❌ Falha ao enviar.';
+                        }
+                    } catch (e) {
+                        resultadoEl.innerHTML += '<br>❌ Erro: ' + e.message;
+                    }
                 } else {
                     resultadoEl.innerText = 'Autorização negada ou falha.';
                 }
